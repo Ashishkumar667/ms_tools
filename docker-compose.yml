@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  ms-teams-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-teams-graph-tools
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Add your environment variables here or use .env file
+      # - GRAPH_ACCESS_TOKEN=${GRAPH_ACCESS_TOKEN}
+      # - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      # - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      # - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      # - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+

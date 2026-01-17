@@ -1,0 +1,741 @@
+{
+  "info": {
+    "name": "Microsoft Teams Graph API Tools",
+    "description": "Complete Postman collection for Microsoft Teams Graph API Tools",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "YOUR_GRAPH_ACCESS_TOKEN_HERE",
+      "type": "string"
+    },
+    {
+      "key": "teamId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "channelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "chatId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "meetingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "filter",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "top",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Discovery",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "me"]
+            }
+          }
+        },
+        {
+          "name": "List My Teams",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams"]
+            }
+          }
+        },
+        {
+          "name": "List All Teams (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams?all=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams"],
+              "query": [
+                {
+                  "key": "all",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Team Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams/{{teamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams", "{{teamId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Channels in Team",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams/{{teamId}}/channels",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams", "{{teamId}}", "channels"]
+            }
+          }
+        },
+        {
+          "name": "Get Channel Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams/{{teamId}}/channels/{{channelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams", "{{teamId}}", "channels", "{{channelId}}"]
+            }
+          }
+        },
+        {
+          "name": "List My Chats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/chats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "chats"]
+            }
+          }
+        },
+        {
+          "name": "Get Chat Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/chats/{{chatId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "chats", "{{chatId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Online Meetings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/meetings?filter={{filter}}&top={{top}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "meetings"],
+              "query": [
+                {
+                  "key": "filter",
+                  "value": "{{filter}}",
+                  "description": "OData filter expression (optional)"
+                },
+                {
+                  "key": "top",
+                  "value": "{{top}}",
+                  "description": "Maximum number of results (optional)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/meetings/{{meetingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "meetings", "{{meetingId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "users"]
+            }
+          }
+        },
+        {
+          "name": "Search Users by Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/users?email=user@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "users"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "user@example.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "List Team Members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discovery/teams/{{teamId}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "discovery", "teams", "{{teamId}}", "members"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "item": [
+        {
+          "name": "Post Announcement to Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"teamId\": \"{{teamId}}\",\n  \"channelId\": \"{{channelId}}\",\n  \"content\": \"<p>Hello from API!</p>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messaging/channel/announcement",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messaging", "channel", "announcement"]
+            }
+          }
+        },
+        {
+          "name": "Send DM to Existing Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatId\": \"{{chatId}}\",\n  \"content\": \"Hello!\",\n  \"contentType\": \"html\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messaging/chat/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messaging", "chat", "send"]
+            }
+          }
+        },
+        {
+          "name": "Create Chat and Send Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chatType\": \"oneOnOne\",\n  \"members\": [\n    { \"id\": \"{{userId}}\" }\n  ],\n  \"content\": \"Hello from new chat!\",\n  \"contentType\": \"html\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messaging/chat/create-and-send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messaging", "chat", "create-and-send"]
+            }
+          }
+        },
+        {
+          "name": "Create Chat Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource\": \"/chats\",\n  \"notificationUrl\": \"https://your-app.com/webhook\",\n  \"expirationDateTime\": \"2024-12-31T23:59:59Z\",\n  \"clientState\": \"optional-secret\",\n  \"changeType\": \"created,updated\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/messaging/subscriptions/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "messaging", "subscriptions", "create"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teams & Channels",
+      "item": [
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Project Falcon\",\n  \"description\": \"Team description\",\n  \"templateId\": \"standard\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "create"]
+            }
+          }
+        },
+        {
+          "name": "Create Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Design\",\n  \"description\": \"Design discussions\",\n  \"membershipType\": \"standard\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/channels/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "channels", "create"]
+            }
+          }
+        },
+        {
+          "name": "Add Member to Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"isOwner\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/members/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "members", "add"]
+            }
+          }
+        },
+        {
+          "name": "Add Member to Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"isOwner\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/channels/{{channelId}}/members/add",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "channels", "{{channelId}}", "members", "add"]
+            }
+          }
+        },
+        {
+          "name": "Create Team Tag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"OnCall\",\n  \"description\": \"On-call team members\",\n  \"members\": [\n    { \"userId\": \"{{userId}}\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/tags/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "tags", "create"]
+            }
+          }
+        },
+        {
+          "name": "List Team Tags",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/tags",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "tags"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Meetings",
+      "item": [
+        {
+          "name": "List Meeting Transcripts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/transcripts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "transcripts"]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Transcript",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/transcripts/:transcriptId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "transcripts", ":transcriptId"]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting Transcript Content",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/transcripts/:transcriptId/content",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "transcripts", ":transcriptId", "content"]
+            }
+          }
+        },
+        {
+          "name": "List Meeting Recordings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/recordings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "recordings"]
+            }
+          }
+        },
+        {
+          "name": "List Meeting AI Insights",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/ai-insights?userId={{userId}}&aiInsightType=meetingSummary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "ai-insights"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                },
+                {
+                  "key": "aiInsightType",
+                  "value": "meetingSummary"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Meeting AI Insight",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/meetings/{{meetingId}}/ai-insights/:aiInsightId?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "meetings", "{{meetingId}}", "ai-insights", ":aiInsightId"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+
+
+
+
