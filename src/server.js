@@ -121,7 +121,6 @@ app.get("/auth/login", (req, res) => {
       "TeamMember.Read.All",
       "TeamMember.ReadWrite.All",
       "Team.ReadBasic.All",
-      "Team.ReadWrite.All",
 
       // chat / messaging
       "Chat.ReadWrite",
