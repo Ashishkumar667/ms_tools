@@ -99,9 +99,9 @@ const {
 
 app.get("/auth/login", (req, res) => {
   try {
-      console.log("CLIENT_ID:", process.env.AZURE_CLIENT_ID);
-  console.log("REDIRECT_URI:", process.env.AZURE_REDIRECT_URI);
-  console.log("TENANT_ID:", process.env.AZURE_TENANT_ID);
+  //     console.log("CLIENT_ID:", process.env.AZURE_CLIENT_ID);
+  // console.log("REDIRECT_URI:", process.env.AZURE_REDIRECT_URI);
+  // console.log("TENANT_ID:", process.env.AZURE_TENANT_ID);
     const tenantId = process.env.AZURE_TENANT_ID || "common";
     const clientId = process.env.AZURE_CLIENT_ID;
     const redirectUri = process.env.AZURE_REDIRECT_URI;
@@ -135,10 +135,12 @@ app.get("/auth/login", (req, res) => {
       state: `state_${Date.now()}`
     });
     console.log("Redirecting to Azure OAuth URL");
-    console.log(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`);
-    return res.redirect(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`
-    );
+    const redirectUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`;
+    console.log("Redirecting to:", redirectUrl);
+    
+    res.redirect(redirectUrl);
+    
+    console.log("Redirect sent");
   } catch (err) {
     console.error("Auth login failed:", err);
     return res.status(500).json({ error: err.message });
