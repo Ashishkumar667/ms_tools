@@ -13,10 +13,11 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Extract token from Authorization header (preferred method)
+  // Extract token from Authorization header
   const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    req.graphToken = authHeader.substring(7);
+  if (authHeader) {
+    // Remove "Bearer " prefix if present, otherwise use as is
+    req.graphToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
     return next();
   }
 
@@ -41,7 +42,7 @@ app.use((req, res, next) => {
     return res.status(401).json({
       error: "Missing access token",
       message:
-        "Provide token via Authorization header (Bearer token), request body (accessToken for POST requests), or GRAPH_ACCESS_TOKEN env variable",
+        "Provide token via Authorization header, request body (accessToken for POST requests), or GRAPH_ACCESS_TOKEN env variable",
     });
   }
 
