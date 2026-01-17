@@ -120,23 +120,55 @@ async function createChatAndSendMessage(
 }
 
 /**
- * Tool: "Tenant-level or user-level chat change watcher" (subscribe to changes)
- * API: POST /subscriptions
- *
- * Common resources:
- *   - /chats
- *   - /chats/{id}
- *   - /users/{user-id}/chats
+ * Tool: "Reply to a channel message (creates thread reply)"
+ * API: POST /teams/{team-id}/channels/{channel-id}/messages/{message-id}/replies
  *
  * @param {string} accessToken
  * @param {object} params
- * @param {string} params.resource - Resource to subscribe to (e.g. "/chats").
- * @param {string} params.notificationUrl - Your HTTPS endpoint to receive notifications.
- * @param {string} params.expirationDateTime - ISO 8601 expiration.
- * @param {string} [params.clientState] - Optional secret for validation.
- * @param {string} [params.changeType="created,updated"] - changeType for subscription.
- * @returns {Promise<object>} subscription
+ * @param {string} params.teamId
+ * @param {string} params.channelId
+ * @param {string} params.messageId - The message to reply to
+ * @param {string} params.content - HTML content of the reply
+ * @param {"text"|"html"} [params.contentType="html"]
+ * @returns {Promise<object>} chatMessage
  */
+async function replyToChannelMessage(accessToken, { teamId, channelId, messageId, content, contentType = "html" }) {
+  const client = new GraphClient(accessToken);
+
+  const body = {
+    body: {
+      contentType,
+      content
+    }
+  };
+
+  return client.post(`/teams/${teamId}/channels/${channelId}/messages/${messageId}/replies`, body);
+}
+
+/**
+ * Tool: "Reply to a chat message"
+ * API: POST /chats/{chat-id}/messages/{message-id}/replies
+ *
+ * @param {string} accessToken
+ * @param {object} params
+ * @param {string} params.chatId
+ * @param {string} params.messageId - The message to reply to
+ * @param {string} params.content - HTML or text content of the reply
+ * @param {"text"|"html"} [params.contentType="html"]
+ * @returns {Promise<object>} chatMessage
+ */
+async function replyToChatMessage(accessToken, { chatId, messageId, content, contentType = "html" }) {
+  const client = new GraphClient(accessToken);
+
+  const body = {
+    body: {
+      contentType,
+      content
+    }
+  };
+
+  return client.post(`/chats/${chatId}/messages/${messageId}/replies`, body);
+}
 async function createChatSubscription(
   accessToken,
   { resource, notificationUrl, expirationDateTime, clientState, changeType = "created,updated" }
@@ -161,6 +193,8 @@ module.exports = {
   postAnnouncementToChannel,
   sendMessageToExistingChat,
   createChatAndSendMessage,
+  replyToChannelMessage,
+  replyToChatMessage,
   createChatSubscription
 };
 

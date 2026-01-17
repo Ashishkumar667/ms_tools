@@ -56,6 +56,8 @@ const {
   postAnnouncementToChannel,
   sendMessageToExistingChat,
   createChatAndSendMessage,
+  replyToChannelMessage,
+  replyToChatMessage,
   createChatSubscription,
 } = require("./tools.messaging");
 const {
@@ -794,6 +796,96 @@ app.post("/api/messaging/subscriptions/create", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/messaging/channel/reply
+ * Reply to a message in a channel (creates thread reply)
+ */
+app.post("/api/messaging/channel/reply", async (req, res) => {
+  try {
+    const accessToken = req.graphToken;
+    const { teamId, teamName, channelId, channelName, messageId, content, contentType = "html" } = req.body;
+
+    if (!messageId || !content) {
+      return res.status(400).json({
+        error: "Missing required fields: messageId, content",
+      });
+    }
+
+    // Auto-resolve teamId from name if needed
+    const resolvedTeamId = teamId || await resolveTeamId(accessToken, teamName);
+    if (!resolvedTeamId) {
+      return res.status(400).json({
+        error: "Missing teamId or teamName. Provide either teamId (GUID) or teamName (string)",
+      });
+    }
+
+    // Auto-resolve channelId from name if needed
+    const channelInfo = channelId
+      ? { channelId, teamId: resolvedTeamId }
+      : await resolveChannelId(accessToken, channelName, resolvedTeamId);
+
+    if (!channelInfo || !channelInfo.channelId) {
+      return res.status(400).json({
+        error: "Missing channelId or channelName. Provide either channelId (GUID) or channelName (string)",
+      });
+    }
+
+    const result = await replyToChannelMessage(accessToken, {
+      teamId: channelInfo.teamId,
+      channelId: channelInfo.channelId,
+      messageId,
+      content,
+      contentType,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: error.message,
+      details: error.response?.data || error.stack,
+    });
+  }
+});
+
+/**
+ * POST /api/messaging/chat/reply
+ * Reply to a message in a chat
+ */
+app.post("/api/messaging/chat/reply", async (req, res) => {
+  try {
+    const accessToken = req.graphToken;
+    const { chatId, email, topic, messageId, content, contentType = "html" } = req.body;
+
+    if (!messageId || !content) {
+      return res.status(400).json({
+        error: "Missing required fields: messageId, content",
+      });
+    }
+
+    // Finding chatId by email if chatId is not provided
+    const finalChatId = chatId || await findChatId(accessToken, { email, topic });
+    if (!finalChatId) {
+      return res.status(400).json({
+        error: `Chat not found for email: ${email}`,
+      });
+    }
+
+    const result = await replyToChatMessage(accessToken, {
+      chatId: finalChatId,
+      messageId,
+      content,
+      contentType,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: error.message,
+      details: error.response?.data || error.stack,
+    });
+  }
+});
+
 // ============================================================================
 // TEAM / CHANNEL PROVISIONING ENDPOINTS
 // ============================================================================
@@ -1439,7 +1531,9 @@ app.get("/", (req, res) => {
       ],
       messaging: [
         "POST /api/messaging/channel/announcement",
+        "POST /api/messaging/channel/reply",
         "POST /api/messaging/chat/send",
+        "POST /api/messaging/chat/reply",
         "POST /api/messaging/chat/create-and-send",
         "POST /api/messaging/subscriptions/create",
       ],
