@@ -1,5 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const { Readable } = require("stream");
+require("dotenv").config();
 
 /**
  * Cloudinary utility functions for uploading videos/recordings
