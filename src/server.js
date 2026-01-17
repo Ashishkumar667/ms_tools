@@ -94,7 +94,8 @@ const {
   resolveTeamId,
   resolveChannelId,
   resolveUserId,
-  findMeetingId
+  findMeetingId,
+  findChatId,
 } = require("./tools.idResolver");
 
 app.get("/auth/login", (req, res) => {
@@ -674,16 +675,22 @@ app.post("/api/messaging/channel/announcement", async (req, res) => {
 app.post("/api/messaging/chat/send", async (req, res) => {
   try {
     const accessToken = req.graphToken;
-    const { chatId, content, contentType = "html" } = req.body;
+    const { chatId, email,topic, content, contentType = "html" } = req.body;
 
-    if (!chatId || !content) {
+    if (!content) {
       return res.status(400).json({
         error: "Missing required fields: chatId, content",
       });
     }
-
+    //finding chatId by email if chatId is not provided
+    const finalChatId = await findChatId(accessToken, { email, topic });
+    if(!finalChatId){
+      return res.status(400).json({
+        error: `Chat not found for email: ${email}`,
+      });
+    }
     const result = await sendMessageToExistingChat(accessToken, {
-      chatId,
+      chatId: finalChatId,
       content,
       contentType,
     });

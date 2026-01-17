@@ -1,0 +1,1250 @@
+openapi: 3.0.3
+info:
+  title: Microsoft Teams Graph API Tools
+  description: |
+    REST API server wrapping Microsoft Graph APIs for common Microsoft Teams operations.
+    Supports messaging, team/channel provisioning, meeting transcripts/recordings, and Copilot insights.
+    
+    **Features:**
+    - Auto-resolves IDs from human-readable names (teamName, channelName, userEmail, etc.)
+    - Uploads meeting recordings to Cloudinary
+    - OAuth2 authentication support
+    - Webhook endpoints for Teams integration
+  version: 1.0.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: OAuth2 authentication endpoints
+  - name: Discovery
+    description: Endpoints to discover and find IDs for teams, channels, users, meetings, etc.
+  - name: Messaging
+    description: Send messages, post announcements, create chats
+  - name: Teams & Channels
+    description: Create and manage teams, channels, members, tags
+  - name: Meetings
+    description: Access meeting transcripts, recordings, and Copilot AI insights
+  - name: Webhooks
+    description: Inbound and outgoing webhook endpoints for Teams integration
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Microsoft Graph access token
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Detailed error information
+        message:
+          type: string
+          description: Additional error context
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Response data
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Team ID (GUID)
+        displayName:
+          type: string
+          description: Team display name
+        description:
+          type: string
+        webUrl:
+          type: string
+          format: uri
+
+    Channel:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Channel ID (GUID)
+        displayName:
+          type: string
+        description:
+          type: string
+        membershipType:
+          type: string
+          enum: [standard, private, shared]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User ID (GUID)
+        displayName:
+          type: string
+        mail:
+          type: string
+          format: email
+        userPrincipalName:
+          type: string
+
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Meeting ID (GUID)
+        subject:
+          type: string
+        startDateTime:
+          type: string
+          format: date-time
+        joinWebUrl:
+          type: string
+          format: uri
+
+    CloudinaryUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            meetingId:
+              type: string
+            recordingId:
+              type: string
+            cloudinaryUrl:
+              type: string
+              format: uri
+              description: Public Cloudinary URL for the video
+            publicId:
+              type: string
+            format:
+              type: string
+            duration:
+              type: number
+            bytes:
+              type: integer
+            createdAt:
+              type: string
+              format: date-time
+            originalRecordingUrl:
+              type: string
+              format: uri
+        message:
+          type: string
+
+paths:
+  /auth/login:
+    get:
+      tags:
+        - Authentication
+      summary: Initiate OAuth2 login flow
+      description: Redirects to Microsoft OAuth2 login page
+      security: []
+      responses:
+        '200':
+          description: HTML page that redirects to Microsoft login
+        '500':
+          description: Missing Azure OAuth configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth2 callback endpoint
+      description: Handles OAuth2 callback and returns access token
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from Microsoft
+        - name: state
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Access token and refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  expires_in:
+                    type: integer
+        '400':
+          description: Missing authorization code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/app-token:
+    get:
+      tags:
+        - Authentication
+      summary: Get application token
+      description: Get application-level access token (client credentials flow)
+      security: []
+      responses:
+        '200':
+          description: Application token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: application
+                  token:
+                    type: string
+
+  /api/discovery/me:
+    get:
+      tags:
+        - Discovery
+      summary: Get current user info
+      description: Returns information about the authenticated user
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  /api/discovery/teams:
+    get:
+      tags:
+        - Discovery
+      summary: List teams
+      description: List teams the user is a member of, or all teams (admin)
+      parameters:
+        - name: all
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: If true, list all teams (requires admin permissions)
+      responses:
+        '200':
+          description: List of teams
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          value:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Team'
+
+  /api/discovery/teams/{teamId}:
+    get:
+      tags:
+        - Discovery
+      summary: Get team details
+      description: Get details of a specific team. teamId can be a GUID or team name.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Team ID (GUID) or team name
+          example: "My Team Name"
+      responses:
+        '200':
+          description: Team details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Team'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/discovery/teams/{teamId}/channels:
+    get:
+      tags:
+        - Discovery
+      summary: List channels in a team
+      description: List all channels in a team. teamId can be a GUID or team name.
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Team ID (GUID) or team name
+      responses:
+        '200':
+          description: List of channels
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          value:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Channel'
+
+  /api/discovery/users:
+    get:
+      tags:
+        - Discovery
+      summary: List or search users
+      description: List users or search by email/displayName
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by email
+        - name: displayName
+          in: query
+          schema:
+            type: string
+          description: Search by display name
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: OData filter expression
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search query
+        - name: top
+          in: query
+          schema:
+            type: integer
+            default: 100
+          description: Maximum number of results
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          value:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/User'
+
+  /api/discovery/users/{userId}:
+    get:
+      tags:
+        - Discovery
+      summary: Get user details
+      description: Get details of a specific user. userId can be GUID, email, or displayName.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID (GUID), email, or displayName
+          example: "user@example.com"
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  /api/discovery/meetings:
+    get:
+      tags:
+        - Discovery
+      summary: List online meetings
+      description: List online meetings for the authenticated user
+      parameters:
+        - name: filter
+          in: query
+          schema:
+            type: string
+          description: OData filter expression
+        - name: top
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of results
+      responses:
+        '200':
+          description: List of meetings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          value:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Meeting'
+
+  /api/discovery/chats:
+    get:
+      tags:
+        - Discovery
+      summary: List chats
+      description: List chats the user is part of
+      responses:
+        '200':
+          description: List of chats
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+
+  /api/messaging/channel/announcement:
+    post:
+      tags:
+        - Messaging
+      summary: Post announcement to a channel
+      description: |
+        Post an announcement to a Teams channel.
+        Accepts teamId/teamName and channelId/channelName - auto-resolves IDs from names.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                teamId:
+                  type: string
+                  description: Team ID (GUID) - optional if teamName provided
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                teamName:
+                  type: string
+                  description: Team name - optional if teamId provided
+                  example: "Engineering Team"
+                channelId:
+                  type: string
+                  description: Channel ID (GUID) - optional if channelName provided
+                channelName:
+                  type: string
+                  description: Channel name - optional if channelId provided
+                  example: "General"
+                content:
+                  type: string
+                  description: HTML content of the message
+                  example: "<p>Hello from API!</p>"
+      responses:
+        '200':
+          description: Message posted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/messaging/chat/send:
+    post:
+      tags:
+        - Messaging
+      summary: Send DM to existing chat
+      description: Send a direct message to an existing chat. Can find chat by email or topic.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                chatId:
+                  type: string
+                  description: Chat ID (GUID) - optional if email/topic provided
+                email:
+                  type: string
+                  format: email
+                  description: Find chat by participant email
+                topic:
+                  type: string
+                  description: Find chat by topic
+                content:
+                  type: string
+                  required: true
+                  description: Message content
+                contentType:
+                  type: string
+                  enum: [text, html]
+                  default: html
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing required fields or chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/messaging/chat/create-and-send:
+    post:
+      tags:
+        - Messaging
+      summary: Create chat and send message
+      description: Create a new 1:1 or group chat and send an initial message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - chatType
+                - members
+                - content
+              properties:
+                chatType:
+                  type: string
+                  enum: [oneOnOne, group]
+                  example: oneOnOne
+                members:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: User ID (GUID), email, or displayName
+                        example: "user@example.com"
+                  minItems: 1
+                content:
+                  type: string
+                  description: Initial message content
+                contentType:
+                  type: string
+                  enum: [text, html]
+                  default: html
+      responses:
+        '200':
+          description: Chat created and message sent
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          chat:
+                            type: object
+                          message:
+                            type: object
+
+  /api/teams/create:
+    post:
+      tags:
+        - Teams & Channels
+      summary: Create a new team
+      description: Create a new Microsoft Teams team from a template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                displayName:
+                  type: string
+                  example: "Project Falcon"
+                description:
+                  type: string
+                  example: "Team description"
+                templateId:
+                  type: string
+                  default: standard
+                  example: standard
+      responses:
+        '200':
+          description: Team creation initiated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Team'
+
+  /api/teams/channels/create:
+    post:
+      tags:
+        - Teams & Channels
+      summary: Create channel in a team
+      description: Create a new channel in a team. Accepts teamId or teamName.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                teamId:
+                  type: string
+                  description: Team ID (GUID) - optional if teamName provided
+                teamName:
+                  type: string
+                  description: Team name - optional if teamId provided
+                  example: "Engineering Team"
+                displayName:
+                  type: string
+                  required: true
+                  example: "Design"
+                description:
+                  type: string
+                  example: "Design discussions"
+                membershipType:
+                  type: string
+                  enum: [standard, private, shared]
+                  default: standard
+      responses:
+        '200':
+          description: Channel created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Channel'
+
+  /api/teams/members/add:
+    post:
+      tags:
+        - Teams & Channels
+      summary: Add member to team
+      description: Add a user as a member or owner to a team. Accepts teamId/teamName and userId/userEmail/userName.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                teamId:
+                  type: string
+                  description: Team ID (GUID) - optional if teamName provided
+                teamName:
+                  type: string
+                  description: Team name - optional if teamId provided
+                userId:
+                  type: string
+                  description: User ID (GUID) - optional if userEmail/userName provided
+                userEmail:
+                  type: string
+                  format: email
+                  description: User email - optional if userId/userName provided
+                userName:
+                  type: string
+                  description: User display name - optional if userId/userEmail provided
+                isOwner:
+                  type: boolean
+                  default: false
+                  description: Make user an owner instead of member
+      responses:
+        '200':
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+
+  /api/teams/tags/create:
+    post:
+      tags:
+        - Teams & Channels
+      summary: Create team tag
+      description: Create a tag in a team for quick @mentions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                teamId:
+                  type: string
+                  description: Team ID (GUID) - optional if teamName provided
+                teamName:
+                  type: string
+                  description: Team name - optional if teamId provided
+                displayName:
+                  type: string
+                  required: true
+                  example: "OnCall"
+                description:
+                  type: string
+                  example: "On-call team members"
+                members:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                        description: User ID (GUID), email, or displayName
+      responses:
+        '200':
+          description: Tag created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+
+  /api/teams/tags:
+    get:
+      tags:
+        - Teams & Channels
+      summary: List team tags
+      description: List all tags in a team
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                teamName:
+                  type: string
+                  description: Team name
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+
+  /api/meetings/transcripts:
+    get:
+      tags:
+        - Meetings
+      summary: List meeting transcripts
+      description: |
+        Get transcripts for a meeting. 
+        Accepts meetingId directly or search criteria (title, organizerEmail, afterDate).
+      parameters:
+        - name: meetingId
+          in: query
+          schema:
+            type: string
+          description: Meeting ID (GUID) - optional if search criteria provided
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: Search by meeting title
+        - name: organizerEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by organizer email
+        - name: afterDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter meetings after this date
+      responses:
+        '200':
+          description: List of transcripts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Missing meetingId or search criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/meetings/recordings:
+    get:
+      tags:
+        - Meetings
+      summary: Get meeting recording
+      description: |
+        Get meeting recording and upload to Cloudinary.
+        Returns Cloudinary URL instead of streaming the video.
+        Accepts meetingId directly or search criteria (title, organizerEmail, afterDate).
+      parameters:
+        - name: meetingId
+          in: query
+          schema:
+            type: string
+          description: Meeting ID (GUID) - optional if search criteria provided
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: Search by meeting title
+        - name: organizerEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by organizer email
+        - name: afterDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter meetings after this date
+      responses:
+        '200':
+          description: Recording uploaded to Cloudinary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CloudinaryUploadResponse'
+        '400':
+          description: Missing meetingId or search criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Cloudinary not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/meetings/transcripts/{transcriptId}:
+    get:
+      tags:
+        - Meetings
+      summary: Get meeting transcript with content
+      description: Get transcript metadata and content for a specific transcript
+      parameters:
+        - name: transcriptId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transcript ID
+        - name: meetingId
+          in: query
+          schema:
+            type: string
+          description: Meeting ID (GUID) - optional if search criteria provided
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: Search by meeting title
+        - name: organizerEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by organizer email
+        - name: afterDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter meetings after this date
+      responses:
+        '200':
+          description: Transcript with content
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                      transcriptContent:
+                        type: string
+                        description: VTT transcript content
+
+  /api/meetings/ai-insights:
+    get:
+      tags:
+        - Meetings
+      summary: Get meeting AI insights
+      description: |
+        Get Copilot AI insights for a meeting (summary, action items, decisions, topics, speakers).
+        Requires Copilot license and meeting with transcription/recording enabled.
+      parameters:
+        - name: meetingId
+          in: query
+          schema:
+            type: string
+          description: Meeting ID (GUID) - optional if search criteria provided
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: Search by meeting title
+        - name: organizerEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by organizer email
+        - name: afterDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter meetings after this date
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: User ID (GUID) - optional if userEmail/userName provided
+        - name: userEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: User email - optional if userId/userName provided
+        - name: userName
+          in: query
+          schema:
+            type: string
+          description: User display name - optional if userId/userEmail provided
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [summary, actionItems, decisions, topics, speakers]
+          description: Type of AI insight to retrieve
+      responses:
+        '200':
+          description: AI insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      total:
+                        type: integer
+                      data:
+                        type: array
+        '403':
+          description: Copilot not licensed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/meetings/ai-insights/{aiInsightId}:
+    get:
+      tags:
+        - Meetings
+      summary: Get specific AI insight
+      description: Get a specific AI insight by ID
+      parameters:
+        - name: aiInsightId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: AI Insight ID
+        - name: meetingId
+          in: query
+          schema:
+            type: string
+          description: Meeting ID (GUID) - optional if search criteria provided
+        - name: title
+          in: query
+          schema:
+            type: string
+          description: Search by meeting title
+        - name: organizerEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: Search by organizer email
+        - name: afterDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter meetings after this date
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: User ID (GUID) - optional if userEmail/userName provided
+        - name: userEmail
+          in: query
+          schema:
+            type: string
+            format: email
+          description: User email - optional if userId/userName provided
+        - name: userName
+          in: query
+          schema:
+            type: string
+          description: User display name - optional if userId/userEmail provided
+      responses:
+        '200':
+          description: AI insight retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Copilot not licensed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/webhooks/inbound/alert:
+    post:
+      tags:
+        - Webhooks
+      summary: Inbound webhook for alerts
+      description: |
+        Receives alerts from external systems (CI/CD, monitoring, etc.) and posts to Teams channel.
+        Configure TEAMS_INCOMING_WEBHOOK_URL in Teams to use this endpoint.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Alert message text
+                title:
+                  type: string
+                  description: Alert title
+                severity:
+                  type: string
+                  enum: [info, warning, error, critical]
+      responses:
+        '200':
+          description: Alert posted to Teams
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+
+  /api/webhooks/outgoing:
+    post:
+      tags:
+        - Webhooks
+      summary: Outgoing webhook handler
+      description: |
+        Handles outgoing webhook commands from Teams.
+        Users can type @YourWebhook command in a channel.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Command text from user
+                from:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    id:
+                      type: string
+                channelId:
+                  type: string
+      responses:
+        '200':
+          description: Webhook response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                    description: Response message to display in Teams
+
+  /api/messaging/subscriptions/create:
+    post:
+      tags:
+        - Messaging
+      summary: Create chat subscription
+      description: Create a subscription to receive notifications for chat changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resource
+                - notificationUrl
+                - expirationDateTime
+              properties:
+                resource:
+                  type: string
+                  description: Resource to subscribe to (e.g., "/chats", "/chats/{id}")
+                  example: "/chats"
+                notificationUrl:
+                  type: string
+                  format: uri
+                  description: HTTPS endpoint to receive notifications
+                  example: "https://your-app.com/webhook"
+                expirationDateTime:
+                  type: string
+                  format: date-time
+                  description: Subscription expiration date
+                  example: "2024-12-31T23:59:59Z"
+                clientState:
+                  type: string
+                  description: Optional secret for validation
+                changeType:
+                  type: string
+                  default: "created,updated"
+                  description: Types of changes to subscribe to
+      responses:
+        '200':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+

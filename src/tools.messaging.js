@@ -69,15 +69,35 @@ async function sendMessageToExistingChat(accessToken, { chatId, content, content
  * @param {"text"|"html"} [params.contentType="html"]
  * @returns {Promise<{ chat: object, message: object }>}
  */
+
+async function getUserIdByEmail(accessToken, email) {
+  const client = new GraphClient(accessToken);
+
+  const user = await client.get(`/users/${encodeURIComponent(email)}`);
+  return user.id;
+}
+
+
 async function createChatAndSendMessage(
   accessToken,
   { chatType, members, content, contentType = "html" }
 ) {
   const client = new GraphClient(accessToken);
 
+  const resolvedMembers = await Promise.all(
+    members.map(async (m) => {
+      if (m.id) return m;
+      if (m.email) {
+        const id = await getUserIdByEmail(accessToken, m.email);
+        return { id };
+      }
+      throw new Error("Each member must have id or email");
+    })
+  );
+
   const chatBody = {
     chatType,
-    members: members.map((m) => ({
+    members: resolvedMembers.map((m) => ({
       "@odata.type": "#microsoft.graph.aadUserConversationMember",
       roles: ["owner"],
       "user@odata.bind": `https://graph.microsoft.com/v1.0/users('${m.id}')`
