@@ -122,17 +122,35 @@ async function addMemberToPrivateOrSharedChannel(
  * @param {Array<{userId: string}>} [params.members]
  * @returns {Promise<object>} teamworkTag
  */
+
+async function getUserIdByEmail(accessToken, email) {
+  const client = new GraphClient(accessToken);
+
+  const user = await client.get(`/users/${encodeURIComponent(email)}`);
+  return user.id;
+}
+
 async function createTeamTag(
   accessToken,
   { teamId, displayName, description, members = [] }
 ) {
   const client = new GraphClient(accessToken);
-
+  const resolvedMembers = await Promise.all(
+    members.map(async (m) => {
+      if (m.id) return m;
+      if (m.email || m.userEmail) {
+        const email = m.email || m.userEmail;
+        const id = await getUserIdByEmail(accessToken, email);
+        return { id };
+      }
+      throw new Error("Each member must have id or email");
+    })
+  );
   const body = {
     displayName,
     description,
-    members: members.map((m) => ({
-      userId: m.userId
+    members: resolvedMembers.map((m) => ({
+      userId: m.id
     }))
   };
 

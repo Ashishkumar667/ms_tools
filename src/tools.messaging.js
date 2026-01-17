@@ -87,8 +87,9 @@ async function createChatAndSendMessage(
   const resolvedMembers = await Promise.all(
     members.map(async (m) => {
       if (m.id) return m;
-      if (m.email) {
-        const id = await getUserIdByEmail(accessToken, m.email);
+      if (m.email || m.userEmail) {
+        const email = m.email || m.userEmail;
+        const id = await getUserIdByEmail(accessToken, email);
         return { id };
       }
       throw new Error("Each member must have id or email");

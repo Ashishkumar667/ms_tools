@@ -966,7 +966,7 @@ app.post("/api/teams/tags/create", async (req, res) => {
   try {
     const accessToken = req.graphToken;
     // const urlTeamId = req.params.teamId;
-    const { teamId, teamName, displayName, description, members = [] } = req.body;
+    const { teamId,email, teamName, displayName, description, members = [] } = req.body;
 
     if (!displayName) {
       return res.status(400).json({
