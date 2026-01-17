@@ -99,18 +99,13 @@ const {
 
 app.get("/auth/login", (req, res) => {
   try {
-  //     console.log("CLIENT_ID:", process.env.AZURE_CLIENT_ID);
-  // console.log("REDIRECT_URI:", process.env.AZURE_REDIRECT_URI);
-  // console.log("TENANT_ID:", process.env.AZURE_TENANT_ID);
     const tenantId = process.env.AZURE_TENANT_ID || "common";
     const clientId = process.env.AZURE_CLIENT_ID;
     const redirectUri = process.env.AZURE_REDIRECT_URI;
 
     if (!clientId || !redirectUri) {
       return res.status(500).json({
-        error: "Missing Azure OAuth env variables",
-        clientId: !!clientId,
-        redirectUri: !!redirectUri
+        error: "Missing Azure OAuth env variables"
       });
     }
 
@@ -134,13 +129,26 @@ app.get("/auth/login", (req, res) => {
       ].join(" "),
       state: `state_${Date.now()}`
     });
-    const authUrl =
-    `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params}`;
-
-  // ⚠️ IMPORTANT: low-level redirect (no HTML, no body)
-  res.statusCode = 302;
-  res.setHeader("Location", authUrl);
-  res.end();
+    
+    const redirectUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`;
+    
+    // Remove CSP
+    res.removeHeader('Content-Security-Policy');
+    
+    // Send HTML with meta refresh (no inline scripts)
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+  <title>Redirecting...</title>
+</head>
+<body>
+  <p>Redirecting to Microsoft Login...</p>
+  <p><a href="${redirectUrl}">Click here if not redirected</a></p>
+</body>
+</html>`);
+    
   } catch (err) {
     console.error("Auth login failed:", err);
     return res.status(500).json({ error: err.message });
