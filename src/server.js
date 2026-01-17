@@ -98,44 +98,49 @@ const {
 } = require("./tools.idResolver");
 
 app.get("/auth/login", (req, res) => {
-  const params = new URLSearchParams({
-    client_id: process.env.AZURE_CLIENT_ID,
-    response_type: "code",
-    redirect_uri: process.env.AZURE_REDIRECT_URI,
-    response_mode: "query",
-    scope: [
-      "openid",
-      "profile",
-      "offline_access",
+  try {
+    const tenantId = process.env.AZURE_TENANT_ID || "common";
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const redirectUri = process.env.AZURE_REDIRECT_URI;
 
-      // basic user
-      "User.Read",
+    if (!clientId || !redirectUri) {
+      return res.status(500).json({
+        error: "Missing Azure OAuth env variables",
+        clientId: !!clientId,
+        redirectUri: !!redirectUri
+      });
+    }
 
-      // meetings
-      "OnlineMeetings.Read",
+    const params = new URLSearchParams({
+      client_id: clientId,
+      response_type: "code",
+      redirect_uri: redirectUri,
+      response_mode: "query",
+      scope: [
+        "openid",
+        "profile",
+        "offline_access",
+        "User.Read",
+        "OnlineMeetings.Read",
+        "TeamMember.Read.All",
+        "TeamMember.ReadWrite.All",
+        "Team.ReadBasic.All",
+        "Chat.ReadWrite",
+        "Chat.Create",
+        "ChannelMessage.Send"
+      ].join(" "),
+      state: `state_${Date.now()}`
+    });
 
-      // users & org discovery
-      "User.Read",
-
-      // teams
-      "TeamMember.Read.All",
-      "TeamMember.ReadWrite.All",
-      "Team.ReadBasic.All",
-
-      // chat / messaging
-      "Chat.ReadWrite",
-      "Chat.Create",
-      "ChannelMessage.Send",
-    ].join(" "),
-    state: "12345",
-  });
-
-  res.redirect(
-    `https://login.microsoftonline.com/${
-      process.env.AZURE_TENANT_ID
-    }/oauth2/v2.0/authorize?${params.toString()}`
-  );
+    return res.redirect(
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`
+    );
+  } catch (err) {
+    console.error("Auth login failed:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
+
 
 app.get("/auth/app-token", async (req, res) => {
   const token = await getAppToken();
