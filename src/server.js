@@ -99,6 +99,9 @@ const {
 
 app.get("/auth/login", (req, res) => {
   try {
+      console.log("CLIENT_ID:", process.env.AZURE_CLIENT_ID);
+  console.log("REDIRECT_URI:", process.env.AZURE_REDIRECT_URI);
+  console.log("TENANT_ID:", process.env.AZURE_TENANT_ID);
     const tenantId = process.env.AZURE_TENANT_ID || "common";
     const clientId = process.env.AZURE_CLIENT_ID;
     const redirectUri = process.env.AZURE_REDIRECT_URI;
