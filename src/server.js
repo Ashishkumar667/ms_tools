@@ -135,6 +135,7 @@ app.get("/auth/login", (req, res) => {
       state: `state_${Date.now()}`
     });
     console.log("Redirecting to Azure OAuth URL");
+    console.log(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`);
     return res.redirect(
       `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`
     );
