@@ -78,6 +78,15 @@ async function getChat(accessToken, chatId) {
 }
 
 /**
+ * List chat members
+ * API: GET /chats/{chatId}/members
+ */
+async function listChatMembers(accessToken, chatId) {
+  const client = new GraphClient(accessToken);
+  return client.get(`/chats/${chatId}/members`);
+}
+
+/**
  * List online meetings
  * API: GET /me/onlineMeetings
  */
@@ -180,6 +189,7 @@ module.exports = {
   getChannel,
   listMyChats,
   getChat,
+  listChatMembers,
   listMyOnlineMeetings,
   getOnlineMeeting,
   listUsers,

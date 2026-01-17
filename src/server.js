@@ -83,6 +83,7 @@ const {
   getChannel,
   listMyChats,
   getChat,
+  listChatMembers,
   listMyOnlineMeetings,
   getOnlineMeeting,
   listUsers,
@@ -348,6 +349,24 @@ app.get("/api/discovery/chats/:chatId", async (req, res) => {
     const accessToken = req.graphToken;
     const { chatId } = req.params;
     const result = await getChat(accessToken, chatId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: error.message,
+      details: error.response?.data || error.stack,
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/chats/:chatId/members
+ * List chat members
+ */
+app.get("/api/discovery/chats/:chatId/members", async (req, res) => {
+  try {
+    const accessToken = req.graphToken;
+    const { chatId } = req.params;
+    const result = await listChatMembers(accessToken, chatId);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(error.response?.status || 500).json({
@@ -1406,6 +1425,7 @@ app.get("/", (req, res) => {
         "GET /api/discovery/teams/:teamId/channels/:channelId - Get channel details",
         "GET /api/discovery/chats - List chats",
         "GET /api/discovery/chats/:chatId - Get chat details",
+        "GET /api/discovery/chats/:chatId/members - List chat members",
         "GET /api/discovery/meetings - List online meetings",
         "GET /api/discovery/meetings/:meetingId - Get meeting details",
         "GET /api/discovery/users - List/search users (?email=... or ?displayName=...)",
