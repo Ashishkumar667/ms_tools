@@ -134,13 +134,13 @@ app.get("/auth/login", (req, res) => {
       ].join(" "),
       state: `state_${Date.now()}`
     });
-    console.log("Redirecting to Azure OAuth URL");
-    const redirectUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`;
-    console.log("Redirecting to:", redirectUrl);
-    
-    res.redirect(redirectUrl);
-    
-    console.log("Redirect sent");
+    const authUrl =
+    `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params}`;
+
+  // ⚠️ IMPORTANT: low-level redirect (no HTML, no body)
+  res.statusCode = 302;
+  res.setHeader("Location", authUrl);
+  res.end();
   } catch (err) {
     console.error("Auth login failed:", err);
     return res.status(500).json({ error: err.message });
