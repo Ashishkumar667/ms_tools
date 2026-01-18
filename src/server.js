@@ -128,7 +128,7 @@ app.get("/auth/login", (req, res) => {
         "User.Read",
         "User.Read.All",
         "OnlineMeetings.ReadWrite",
-        "Calendars.ReadWrite",
+        // "Calendars.ReadWrite",
         "TeamMember.Read.All",
         "TeamMember.ReadWrite.All",
         "Team.ReadBasic.All",
@@ -1334,26 +1334,10 @@ const getRecordingContent = async (accessToken, recordingContentUrl) => {
 app.get("/api/meetings/recordings", async (req, res) => {
   try {
     const accessToken = req.graphToken;
-    const { meetingId, title, organizerEmail, afterDate } = req.query;
+    const { meetingId } = req.query;
 
-    // Auto-resolve meetingId from query params if provided
-    let resolvedMeetingId = meetingId;
-    if (!resolvedMeetingId && (title || organizerEmail || afterDate)) {
-      resolvedMeetingId = await findMeetingId(accessToken, { 
-        title, 
-        organizerEmail, 
-        afterDate 
-      });
-    }
-
-    if (!resolvedMeetingId) {
-      return res.status(400).json({
-        error: "Missing meetingId or meeting search criteria (title, organizerEmail, afterDate) in query params",
-      });
-    }
-
-    const result = await listMeetingRecordings(accessToken, { meetingId: resolvedMeetingId });
-
+    const result = await listMeetingRecordings(accessToken, { meetingId });
+    console.log("result", result);
     // 🔥 Correct access
     const recording = result?.value?.[0];
 
@@ -1379,6 +1363,7 @@ app.get("/api/meetings/recordings", async (req, res) => {
       recording.recordingContentUrl
     );
 
+    console.log("uploading video to Cloudinary...");
     // Upload to Cloudinary
     const publicId = `meeting-${resolvedMeetingId}-${Date.now()}`;
     const cloudinaryResult = await uploadVideoToCloudinary(videoBuffer, {
