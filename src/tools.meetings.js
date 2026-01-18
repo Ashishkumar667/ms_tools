@@ -5,6 +5,15 @@ const { GraphClient } = require("./graphClient");
  */
 
 /**
+ * Create a new online meeting
+ * API: POST /me/onlineMeetings
+ */
+async function createOnlineMeeting(accessToken, meetingDetails) {
+  const client = new GraphClient(accessToken);
+  return client.request("POST", "/me/onlineMeetings", meetingDetails);
+}
+
+/**
  * Tool: "Pull the transcript from a scheduled meeting"
  *
  * List callTranscript objects for an onlineMeeting.
@@ -89,6 +98,7 @@ async function getMeetingAiInsight(accessToken, { userId, meetingId, aiInsightId
 }
 
 module.exports = {
+  createOnlineMeeting,
   listMeetingTranscripts,
   getMeetingTranscript,
   getMeetingTranscriptContent,

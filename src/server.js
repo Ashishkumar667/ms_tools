@@ -69,6 +69,7 @@ const {
   listTeamTags,
 } = require("./tools.teamsProvisioning");
 const {
+  createOnlineMeeting,
   listMeetingTranscripts,
   getMeetingTranscript,
   getMeetingTranscriptContent,
@@ -124,7 +125,8 @@ app.get("/auth/login", (req, res) => {
         "profile",
         "offline_access",
         "User.Read",
-        "OnlineMeetings.Read",
+        "User.Read.All",
+        "OnlineMeetings.ReadWrite",
         "TeamMember.Read.All",
         "TeamMember.ReadWrite.All",
         "Team.ReadBasic.All",
@@ -1137,6 +1139,30 @@ app.get("/api/teams/tags", async (req, res) => {
 // ============================================================================
 
 /**
+ * POST /api/meetings
+ * Create a new online meeting
+ */
+app.post("/api/meetings", async (req, res) => {
+  try {
+    const accessToken = req.graphToken;
+    const meetingDetails = req.body;
+
+    if (!meetingDetails.subject || !meetingDetails.startDateTime || !meetingDetails.endDateTime) {
+      return res.status(400).json({
+        error: "Missing required fields: subject, startDateTime, endDateTime"
+      });
+    }
+
+    const result = await createOnlineMeeting(accessToken, meetingDetails);
+    res.status(201).json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/meetings/:meetingId/transcripts
  * List transcripts for a scheduled meeting
  */
@@ -1154,7 +1180,7 @@ app.get("/api/meetings/transcripts", async (req, res) => {
         afterDate 
       });
     }
-
+    console.log("Resolved meetingId:", resolvedMeetingId);
     if (!resolvedMeetingId) {
       return res.status(400).json({
         error: "Missing meetingId or meeting search criteria (title, organizerEmail, afterDate)",
@@ -1162,7 +1188,7 @@ app.get("/api/meetings/transcripts", async (req, res) => {
     }
 
     const result = await listMeetingTranscripts(accessToken, { meetingId: resolvedMeetingId });
-
+    console.log("result", result);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(error.response?.status || 500).json({
