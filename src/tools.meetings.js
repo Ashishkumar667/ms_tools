@@ -14,6 +14,15 @@ async function createOnlineMeeting(accessToken, meetingDetails) {
 }
 
 /**
+ * Create a calendar event (can be online meeting)
+ * API: POST /me/events
+ */
+async function createCalendarEvent(accessToken, eventDetails) {
+  const client = new GraphClient(accessToken);
+  return client.request("POST", "/me/events", eventDetails);
+}
+
+/**
  * Tool: "Pull the transcript from a scheduled meeting"
  *
  * List callTranscript objects for an onlineMeeting.
@@ -99,6 +108,7 @@ async function getMeetingAiInsight(accessToken, { userId, meetingId, aiInsightId
 
 module.exports = {
   createOnlineMeeting,
+  createCalendarEvent,
   listMeetingTranscripts,
   getMeetingTranscript,
   getMeetingTranscriptContent,

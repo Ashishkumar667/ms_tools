@@ -70,6 +70,7 @@ const {
 } = require("./tools.teamsProvisioning");
 const {
   createOnlineMeeting,
+  createCalendarEvent,
   listMeetingTranscripts,
   getMeetingTranscript,
   getMeetingTranscriptContent,
@@ -127,6 +128,7 @@ app.get("/auth/login", (req, res) => {
         "User.Read",
         "User.Read.All",
         "OnlineMeetings.ReadWrite",
+        "Calendars.ReadWrite",
         "TeamMember.Read.All",
         "TeamMember.ReadWrite.All",
         "Team.ReadBasic.All",
@@ -1176,6 +1178,30 @@ app.post("/api/meetings", async (req, res) => {
     }
 
     const result = await createOnlineMeeting(accessToken, meetingDetails);
+    res.status(201).json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.response?.status || 500).json({
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/calendar/events
+ * Create a new calendar event
+ */
+app.post("/api/calendar/events", async (req, res) => {
+  try {
+    const accessToken = req.graphToken;
+    const eventDetails = req.body;
+
+    if (!eventDetails.subject || !eventDetails.start || !eventDetails.end) {
+      return res.status(400).json({
+        error: "Missing required fields: subject, start, end"
+      });
+    }
+
+    const result = await createCalendarEvent(accessToken, eventDetails);
     res.status(201).json({ success: true, data: result });
   } catch (error) {
     res.status(error.response?.status || 500).json({
