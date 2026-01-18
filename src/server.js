@@ -390,7 +390,29 @@ app.get("/api/discovery/meetings", async (req, res) => {
     const accessToken = req.graphToken;
     const { filter, top } = req.query;
     const result = await listMyOnlineMeetings(accessToken, { filter, top });
-    res.json({ success: true, data: result });
+    const meetings = (result.value || []).map(meeting => ({
+      id: meeting.id,
+      joinUrl: meeting.joinWebUrl || meeting.joinUrl,
+      participants: {
+        organizer: meeting.participants?.organizer
+          ? {
+              userId: meeting.participants.organizer.identity?.user?.id,
+              upn: meeting.participants.organizer.upn,
+              role: meeting.participants.organizer.role
+            }
+          : null,
+        attendees: (meeting.participants?.attendees || []).map(a => ({
+          userId: a.identity?.user?.id,
+          upn: a.upn,
+          role: a.role
+        }))
+      }
+    }));
+    res.json({
+      success: true,
+      count: meetings.length,
+      data: meetings
+    });
   } catch (error) {
     res.status(error.response?.status || 500).json({
       error: error.message,
