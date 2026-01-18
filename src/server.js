@@ -128,7 +128,7 @@ app.get("/auth/login", (req, res) => {
         "User.Read",
         "User.Read.All",
         "OnlineMeetings.ReadWrite",
-        // "Calendars.ReadWrite",
+        "Calendars.ReadWrite",
         "TeamMember.Read.All",
         "TeamMember.ReadWrite.All",
         "Team.ReadBasic.All",
