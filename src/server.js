@@ -1365,7 +1365,7 @@ app.get("/api/meetings/recordings", async (req, res) => {
 
     console.log("uploading video to Cloudinary...");
     // Upload to Cloudinary
-    const publicId = `meeting-${resolvedMeetingId}-${Date.now()}`;
+    const publicId = `meetingrecordings-${Date.now()}`;
     const cloudinaryResult = await uploadVideoToCloudinary(videoBuffer, {
       publicId: publicId,
       folder: "teams-recordings",
@@ -1375,7 +1375,6 @@ app.get("/api/meetings/recordings", async (req, res) => {
     res.json({
       success: true,
       data: {
-        meetingId: resolvedMeetingId,
         recordingId: recording.id,
         cloudinaryUrl: cloudinaryResult.secure_url,
         publicId: cloudinaryResult.public_id,
