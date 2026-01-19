@@ -636,32 +636,36 @@ app.post("/api/webhooks/inbound/alert", async (req, res) => {
  */
 app.post("/apii/teams/webhooks/outgoing", async (req, res) => {
   try {
-    // Handle Teams webhook validation challenge
-    // Teams sends this during webhook creation to verify the endpoint
-    if (req.body && req.body.type === "verification") {
-      // Return the challenge token to validate the webhook
+    // 1️⃣ Verification challenge
+    if (req.body?.type === "verification") {
+      res.set("Content-Type", "text/plain");
+      console.log("🔔 Outgoing webhook verification received:", req.body);
       return res.status(200).send(req.body.value);
     }
 
+    // 2️⃣ Extract payload
     const { text, from, channelId } = req.body || {};
+    const userName = from?.name || "User";
+    const cleanText = text?.trim() || "(no message)";
 
-    const userName = from?.name || "user";
-    const replyText = `Hi ${userName}, you said: "${text || ""}" in channel ${
-      channelId || ""
-    }.`;
+    console.log("Teams Webhook Event:", {
+      user: userName,
+      message: cleanText,
+      channel: channelId,
+      timestamp: new Date().toISOString(),
+    });
 
-    // Teams expects JSON with a "text" field (and optional attachments)
-    res.json({
-      text: replyText,
+    // 3️⃣ Teams-compliant response
+    return res.status(200).json({
+      type: "message",
+      text: `👋 Hello ${userName}!\nYour message "${cleanText}" has been received and processed successfully.`,
     });
-  } catch (error) {
-    console.error("Webhook error:", error);
-    res.status(500).json({
-      error: error.message,
-      details: error.stack,
-    });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
+
 
 // ============================================================================
 // MESSAGING ENDPOINTS
