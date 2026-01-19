@@ -2,10 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const app = express();
+const crypto = require("crypto");
 
 // Middleware
 app.use(express.json());
-
 // Middleware to extract and set Graph access token
 app.use((req, res, next) => {
   // Skip auth middleware for auth endpoints and root
@@ -635,39 +635,60 @@ app.post("/api/webhooks/inbound/alert", async (req, res) => {
  * NOTE: For brevity we are not validating HMAC signatures here.
  * 
  */
-app.get("/apii/teams/webhooks/outgoing", (req, res) => {
-  res.status(200).send("OK");
-});
-app.post("/apii/teams/webhooks/outgoing", async (req, res) => {
-  try {
-    // 1️⃣ Verification challenge
-    if (req.body?.type === "verification") {
-      res.set("Content-Type", "text/plain");
-      console.log("🔔 Outgoing webhook verification received:", req.body);
-      return res.status(200).send(req.body.value);
-    }
+// app.get("/apii/teams/webhooks/outgoing", (req, res) => {
+//   res.status(200).send("OK");
+// });
+// Validate Teams HMAC signature
+const TEAMS_WEBHOOK_SECRET = process.env.TEAMS_WEBHOOK_SECRET;
 
-    // 2️⃣ Extract payload
-    const { text, from, channelId } = req.body || {};
-    const userName = from?.name || "User";
-    const cleanText = text?.trim() || "(no message)";
+// Signature verification
+function verifySignature(req) {
+  const signature = req.headers["authorization"];
+  if (!signature) return false;
 
-    console.log("Teams Webhook Event:", {
-      user: userName,
-      message: cleanText,
-      channel: channelId,
-      timestamp: new Date().toISOString(),
-    });
+  const hmac = crypto.createHmac("sha256", TEAMS_WEBHOOK_SECRET);
+  hmac.update(req.rawBody, "utf-8");
+  const expected = "HMAC " + hmac.digest("base64");
 
-    // 3️⃣ Teams-compliant response
-    return res.status(200).json({
-      type: "message",
-      text: `👋 Hello ${userName}!\nYour message "${cleanText}" has been received and processed successfully.`,
-    });
-  } catch (err) {
-    console.error("Webhook error:", err);
-    return res.status(500).json({ error: err.message });
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+
+// Outgoing Webhook endpoint
+app.post("/teams/outgoing", (req, res) => {
+  // Verify request came from Teams
+  if (!verifySignature(req)) {
+    return res.status(401).send("Invalid signature");
   }
+
+  const {
+    text,
+    from,
+    channelData,
+    conversation,
+    serviceUrl,
+  } = req.body;
+
+  console.log("Message from Teams:", text);
+  console.log("User:", from?.name);
+  console.log("Team ID:", channelData?.team?.id);
+
+  // Example logic
+  let reply = "I didn't understand your message.";
+
+  if (text.toLowerCase().includes("hello")) {
+    reply = `Hello ${from.name} 👋`;
+  } else if (text.toLowerCase().includes("time")) {
+    reply = `Current server time is ${new Date().toLocaleString()}`;
+  }
+
+  // Teams expects JSON
+  return res.json({
+    type: "message",
+    text: reply,
+  });
 });
 
 
