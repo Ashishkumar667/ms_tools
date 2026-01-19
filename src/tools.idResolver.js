@@ -162,7 +162,7 @@ async function findMeetingId(accessToken, { title, organizerEmail, afterDate } =
     
     return filtered.length > 0 ? filtered[0].id : null;
   } catch (error) {
-    throw new Error(`Failed to find meeting: ${error.message}`);
+    throw new Error(`Failed to find meeting: ${error.response?.data?.error?.message || error.message}`);
   }
 }
 

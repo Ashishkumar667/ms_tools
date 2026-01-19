@@ -560,19 +560,19 @@ app.get(
  */
 app.post("/api/webhooks/inbound/alert", async (req, res) => {
   try {
-    const webhookUrl = process.env.TEAMS_INCOMING_WEBHOOK_URL;
+    const webhookUrl = req.headers["x-teams-webhook-url"];
     if (!webhookUrl) {
       return res.status(500).json({
         error:
-          "TEAMS_INCOMING_WEBHOOK_URL is not configured in environment variables",
+          "x-teams-webhook-url is not configured in header sections of the request",
       });
     }
 
-    const expectedSecret = process.env.INBOUND_WEBHOOK_SECRET;
-    const providedSecret = req.headers["x-shared-secret"];
-    if (expectedSecret && providedSecret !== expectedSecret) {
-      return res.status(401).json({ error: "Invalid shared secret" });
-    }
+    // const expectedSecret = process.env.INBOUND_WEBHOOK_SECRET;
+    // const providedSecret = req.headers["x-shared-secret"];
+    // if (expectedSecret && providedSecret !== expectedSecret) {
+    //   return res.status(401).json({ error: "Invalid shared secret" });
+    // }
 
     const {
       title = "Alert",
@@ -787,6 +787,44 @@ app.post("/api/messaging/chat/create-and-send", async (req, res) => {
  * POST /api/messaging/subscriptions/create
  * Create a chat change watcher subscription
  */
+app.get("/api/graph/notifications", (req, res) => {
+  const token = req.query.validationToken;
+
+  if (token) {
+    console.log("🔔 Graph notification validation token:", token);
+    return res.status(200).send(token); // MUST be plain text
+  }
+
+  res.sendStatus(400);
+});
+
+app.post("/api/graph/notifications", (req, res) => {
+  console.log("📩 Graph notification received:");
+  console.dir(req.body, { depth: null });
+
+  // Always respond quickly
+  res.sendStatus(202);
+});
+
+// 🔹 Lifecycle notifications (renewals, expiration, reauthorization)
+app.get("/api/graph/lifecycle", (req, res) => {
+  const token = req.query.validationToken;
+
+  if (token) {
+    console.log("♻️ Graph lifecycle validation token:", token);
+    return res.status(200).send(token);
+  }
+
+  res.sendStatus(400);
+});
+
+app.post("/api/graph/lifecycle", (req, res) => {
+  console.log("♻️ Graph lifecycle event received:");
+  console.dir(req.body, { depth: null });
+
+  res.sendStatus(202);
+});
+
 app.post("/api/messaging/subscriptions/create", async (req, res) => {
   try {
     const accessToken = req.graphToken;
@@ -796,6 +834,7 @@ app.post("/api/messaging/subscriptions/create", async (req, res) => {
       expirationDateTime,
       clientState,
       changeType = "created,updated",
+      lifecycleNotificationUrl,
     } = req.body;
 
     if (!resource || !notificationUrl || !expirationDateTime) {
@@ -811,6 +850,7 @@ app.post("/api/messaging/subscriptions/create", async (req, res) => {
       expirationDateTime,
       clientState,
       changeType,
+      lifecycleNotificationUrl,
     });
 
     res.json({ success: true, data: result });
@@ -1218,7 +1258,7 @@ app.get("/api/meetings/transcripts", async (req, res) => {
   try {
     const accessToken = req.graphToken;
     const { meetingId, title, organizerEmail, afterDate } = req.query;
-
+    console.log("Received query params:", req.query);
     // Auto-resolve meetingId from query params if provided
     let resolvedMeetingId = meetingId;
     if (!resolvedMeetingId && (title || organizerEmail || afterDate)) {

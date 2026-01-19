@@ -171,7 +171,7 @@ async function replyToChatMessage(accessToken, { chatId, messageId, content, con
 }
 async function createChatSubscription(
   accessToken,
-  { resource, notificationUrl, expirationDateTime, clientState, changeType = "created,updated" }
+  { resource, notificationUrl, expirationDateTime, clientState, changeType = "created,updated", lifecycleNotificationUrl }
 ) {
   const client = new GraphClient(accessToken);
 
@@ -184,6 +184,10 @@ async function createChatSubscription(
 
   if (clientState) {
     body.clientState = clientState;
+  }
+
+  if (lifecycleNotificationUrl) {
+    body.lifecycleNotificationUrl = lifecycleNotificationUrl;
   }
 
   return client.post("/subscriptions", body);
