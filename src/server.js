@@ -633,7 +633,11 @@ app.post("/api/webhooks/inbound/alert", async (req, res) => {
  * You must respond within ~10 seconds with a simple payload.
  *
  * NOTE: For brevity we are not validating HMAC signatures here.
+ * 
  */
+app.get("/apii/teams/webhooks/outgoing", (req, res) => {
+  res.status(200).send("OK");
+});
 app.post("/apii/teams/webhooks/outgoing", async (req, res) => {
   try {
     // 1️⃣ Verification challenge
