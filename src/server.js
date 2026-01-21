@@ -106,7 +106,7 @@ const {
 
 app.get("/auth/login", (req, res) => {
   try {
-    const tenantId = process.env.AZURE_TENANT_ID || "common";
+    const tenantId = "common";
     const clientId = process.env.AZURE_CLIENT_ID;
     const redirectUri = process.env.AZURE_REDIRECT_URI;
 
@@ -176,30 +176,49 @@ app.get("/auth/app-token", async (req, res) => {
 app.get("/auth/callback", async (req, res) => {
   try {
     const code = req.query.code;
+    const tenantId = "common"; // Must remain common
+    const clientId = process.env.AZURE_CLIENT_ID;
+    const clientSecret = process.env.AZURE_CLIENT_SECRET;
+    const redirectUri = process.env.AZURE_REDIRECT_URI;
 
     if (!code) {
       return res.status(400).json({ error: "Missing authorization code" });
     }
 
-    const tokenRes = await axios.post(
-      `https://login.microsoftonline.com/${process.env.AZURE_TENANT_ID}/oauth2/v2.0/token`,
-      new URLSearchParams({
-        client_id: process.env.AZURE_CLIENT_ID,
-        client_secret: process.env.AZURE_CLIENT_SECRET,
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: process.env.AZURE_REDIRECT_URI,
-      }).toString(),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
+    const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
-    res.json(tokenRes.data);
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code"
+    });
+
+    const response = await axios.post(tokenUrl, params.toString(), {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+
+    const { access_token, refresh_token, expires_in } = response.data;
+
+    // Show the delegated token to the user
+    return res.send(`
+      <h2>Microsoft Delegated Access Token Generated</h2>
+      <p><b>Paste this token in your MS Tool Agent Authorization:</b></p>
+      <textarea style="width:100%;height:200px;">${access_token}</textarea>
+
+      <h3>Refresh Token (save only if needed)</h3>
+      <textarea style="width:100%;height:120px;">${refresh_token || ""}</textarea>
+
+      <p>Expires in: ${expires_in} seconds</p>
+    `);
+
   } catch (err) {
-    res.status(500).json(err.response?.data || err.message);
+    console.error("Callback error:", err.response?.data || err.message);
+    return res.status(500).json({
+      error: "Failed to exchange code",
+      details: err.response?.data || err.message
+    });
   }
 });
 
