@@ -175,6 +175,12 @@ app.get("/auth/app-token", async (req, res) => {
 
 app.get("/auth/callback", async (req, res) => {
   try {
+       if (req.query.admin_consent === "True") {
+      return res.send(`
+        <h2>Admin consent granted successfully!</h2>
+        <p>Your organization's users can now log in using the normal login link.</p>
+      `);
+    }
     const code = req.query.code;
     const tenantId = "common"; // Must remain common
     const clientId = process.env.AZURE_CLIENT_ID;
