@@ -3,50 +3,41 @@ const express = require("express");
 const axios = require("axios");
 const app = express();
 const crypto = require("crypto");
+const resolveGraphToken = require("./auth/tokenSelector");
 
 // Middleware
 app.use(express.json());
 // Middleware to extract and set Graph access token
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   // Skip auth middleware for auth endpoints and root
   if (req.path.startsWith("/auth/") || req.path === "/") {
     return next();
   }
 
+  if (req.path.startsWith("/api/")) {
+    // Use the advanced token resolution with refresh logic for API routes
+    return resolveGraphToken(req, res, next);
+  }
+
+  // For other routes, use simple token extraction
   // Extract token from Authorization header
   const authHeader = req.headers.authorization;
+  let token;
+
   if (authHeader) {
-    // Remove "Bearer " prefix if present, otherwise use as is
-    req.graphToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-    return next();
+    // Check if the token starts with 'Bearer '
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else {
+      // If it doesn't, use the token directly
+      token = authHeader;
+    }
   }
 
-  // Try to get from body (for POST/PUT/PATCH requests)
-  if (
-    ["POST", "PUT", "PATCH"].includes(req.method) &&
-    req.body &&
-    req.body.accessToken
-  ) {
-    req.graphToken = req.body.accessToken;
-    return next();
-  }
+  // Store the token in the request object for later use
+  req.token = token;
 
-  // Fallback to environment variable
-  if (process.env.GRAPH_ACCESS_TOKEN) {
-    req.graphToken = process.env.GRAPH_ACCESS_TOKEN;
-    return next();
-  }
-
-  // If no token found and it's an API endpoint, return error
-  if (req.path.startsWith("/api/")) {
-    return res.status(401).json({
-      error: "Missing access token",
-      message:
-        "Provide token via Authorization header, request body (accessToken for POST requests), or GRAPH_ACCESS_TOKEN env variable",
-    });
-  }
-
-  // For non-API endpoints, continue without token
+  // Call the next middleware
   next();
 });
 
@@ -134,6 +125,9 @@ app.get("/auth/login", (req, res) => {
         "Team.ReadBasic.All",
         "Chat.ReadWrite",
         "Chat.Create",
+        // "Chat.Read.All",
+        "Chat.Read",
+        "Subscription.Read.All",
         "ChannelMessage.Send"
       ].join(" "),
       state: `state_${Date.now()}`
@@ -225,6 +219,21 @@ app.get("/auth/callback", async (req, res) => {
       error: "Failed to exchange code",
       details: err.response?.data || err.message
     });
+  }
+});
+app.post("/auth/logout", (req, res) => {
+  try {
+    const { clearUserToken } = require("./auth/tokenManager");
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      clearUserToken(token);
+    }
+    
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -841,18 +850,19 @@ app.post("/api/messaging/chat/create-and-send", async (req, res) => {
  * POST /api/messaging/subscriptions/create
  * Create a chat change watcher subscription
  */
-app.get("/api/graph/notifications", (req, res) => {
+app.get("/graph/notifications", (req, res) => {
   const token = req.query.validationToken;
-
+  console.log("Received validation token:", token);
   if (token) {
     console.log("🔔 Graph notification validation token:", token);
+    res.set("Content-Type", "text/plain");
     return res.status(200).send(token); // MUST be plain text
   }
 
   res.sendStatus(400);
 });
 
-app.post("/api/graph/notifications", (req, res) => {
+app.post("/graph/notifications", (req, res) => {
   console.log("📩 Graph notification received:");
   console.dir(req.body, { depth: null });
 
@@ -861,18 +871,19 @@ app.post("/api/graph/notifications", (req, res) => {
 });
 
 // 🔹 Lifecycle notifications (renewals, expiration, reauthorization)
-app.get("/api/graph/lifecycle", (req, res) => {
+app.get("/graph/lifecycle", (req, res) => {
   const token = req.query.validationToken;
 
   if (token) {
     console.log("♻️ Graph lifecycle validation token:", token);
+    res.set("Content-Type", "text/plain");
     return res.status(200).send(token);
   }
 
   res.sendStatus(400);
 });
 
-app.post("/api/graph/lifecycle", (req, res) => {
+app.post("/graph/lifecycle", (req, res) => {
   console.log("♻️ Graph lifecycle event received:");
   console.dir(req.body, { depth: null });
 
@@ -898,10 +909,24 @@ app.post("/api/messaging/subscriptions/create", async (req, res) => {
       });
     }
 
+    // Format expirationDateTime to ISO 8601
+    let formattedExpirationDateTime;
+    try {
+      const date = new Date(expirationDateTime);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+      formattedExpirationDateTime = date.toISOString();
+    } catch (err) {
+      return res.status(400).json({
+        error: "Invalid expirationDateTime format. Use a valid date string or ISO 8601 format.",
+      });
+    }
+
     const result = await createChatSubscription(accessToken, {
       resource,
       notificationUrl,
-      expirationDateTime,
+      expirationDateTime: formattedExpirationDateTime,
       clientState,
       changeType,
       lifecycleNotificationUrl,
